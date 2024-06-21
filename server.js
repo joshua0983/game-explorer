@@ -13,9 +13,6 @@ mongoose.connect('mongodb://localhost/game_explorer');
 
 const gameSchema = new mongoose.Schema({
   gameId: Number,
-  name: String,
-  genres: [String],
-  summary: String,
   videoUrl: String,
   likes: { type: Number, default: 0 },
   dislikes: { type: Number, default: 0 },
@@ -75,68 +72,79 @@ app.get('/', (req, res) => {
   res.send('Welcome to the Game Explorer API');
 });
 
-app.get('/api/games', async (req, res) => {
+app.get('/api/search', async (req, res) => {
   try {
+    const searchQuery = req.query.q || ''; // Use the query parameter 'q' or default to an empty string
+    console.log(`Searching for games with query: ${searchQuery}`);
+
     const ACCESS_TOKEN = await getToken();
     if (!ACCESS_TOKEN) {
       return res.status(500).send('Error fetching access token');
     }
 
-    const response = await axios({
-      url: 'https://api.igdb.com/v4/games',
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Client-ID': CLIENT_ID,
-        Authorization: `Bearer ${ACCESS_TOKEN}`,
-      },
-      data: 'fields id,name,genres.name,summary; limit 5;',
-    });
+    let allGames = [];
+    let offset = 0;
+    const limit = 5;
+    let hasMore = true;
 
-    console.log('IGDB API Response:', JSON.stringify(response.data, null, 2));
+    while (hasMore) {
+      const queryData = `fields id,name,genres.name,summary; search "${searchQuery}"; limit ${limit}; offset ${offset};`;
+      console.log(`Querying IGDB with data: ${queryData}`);
 
-    const games = response.data;
-    const updatedGames = [];
-    for (const game of games) {
-      const genres = game.genres ? game.genres.map((genre) => genre.name) : [];
-      const existingGame = await Game.findOne({ gameId: game.id });
-      let videoUrl;
-      if (existingGame) {
-        videoUrl = existingGame.videoUrl;
-        console.log(`Using existing game for ${game.name}`);
-        if (!videoUrl || videoUrl === 'No videos found' || videoUrl === 'Error') {
-          console.log(`Fetching new video URL for ${game.name}`);
-          videoUrl = await fetchYouTubeVideo(game.name);
-          existingGame.videoUrl = videoUrl;
-          await existingGame.save();
-        }
+      const response = await axios({
+        url: 'https://api.igdb.com/v4/games',
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Client-ID': CLIENT_ID,
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+        },
+        data: queryData,
+      });
+
+      console.log(`IGDB API Response for offset ${offset}:`, JSON.stringify(response.data, null, 2));
+
+      const games = response.data;
+      allGames = allGames.concat(games);
+
+      if (games.length < limit) {
+        hasMore = false;
       } else {
-        videoUrl = await fetchYouTubeVideo(game.name);
-        console.log(`Fetched video URL for ${game.name}: ${videoUrl}`);
-        const newGame = new Game({
-          gameId: game.id,
-          name: game.name,
-          genres: genres,
-          summary: game.summary,
-          videoUrl: videoUrl,
-        });
-        console.log(`Saving new game: ${JSON.stringify(newGame, null, 2)}`);
-        await newGame.save();
+        offset += limit;
       }
-      updatedGames.push({
+    }
+
+    const updatedGames = [];
+
+    for (const game of allGames) {
+      const existingGame = await Game.findOne({ gameId: game.id });
+
+      const gameData = {
         id: game.id,
         name: game.name,
-        genres: genres,
+        genres: game.genres ? game.genres.map((genre) => genre.name) : [],
         summary: game.summary,
-        videoUrl: videoUrl,
+        videoUrl: existingGame ? existingGame.videoUrl : await fetchYouTubeVideo(game.name),
         likes: existingGame ? existingGame.likes : 0,
         dislikes: existingGame ? existingGame.dislikes : 0,
-      });
+      };
+
+      if (!existingGame) {
+        const newGame = new Game({
+          gameId: game.id,
+          videoUrl: gameData.videoUrl,
+        });
+        await newGame.save();
+      }
+
+      updatedGames.push(gameData);
     }
+
+    console.log(`Total games found: ${allGames.length}`);
     res.json(updatedGames);
   } catch (error) {
-    console.error('Error fetching games:', error.response ? error.response.data : error.message);
-    res.status(500).send('Error fetching games');
+    console.error('Error searching games:', error.message);
+    res.status(500).send('Error searching games');
   }
 });
 
