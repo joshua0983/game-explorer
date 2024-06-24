@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const axios = require('axios');
+const path = require('path');
 
 const app = express();
 const port = 3000;
@@ -9,8 +10,10 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
+// Connect to MongoDB
 mongoose.connect('mongodb://localhost/game_explorer');
 
+// Define the Game schema for MongoDB
 const gameSchema = new mongoose.Schema({
   gameId: Number,
   videoUrl: String,
@@ -18,8 +21,11 @@ const gameSchema = new mongoose.Schema({
   dislikes: { type: Number, default: 0 },
 });
 
+// Create the Game model from the schema
 const Game = mongoose.model('Game', gameSchema);
 
+
+// Function to get an access token from Twitch
 const getToken = async () => {
   try {
     const response = await axios.post('https://id.twitch.tv/oauth2/token', null, {
@@ -37,6 +43,7 @@ const getToken = async () => {
   }
 };
 
+// Function to fetch a YouTube video URL for a given game name
 const fetchYouTubeVideo = async (gameName) => {
   const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search';
   try {
@@ -68,10 +75,7 @@ const fetchYouTubeVideo = async (gameName) => {
   }
 };
 
-app.get('/', (req, res) => {
-  res.send('Welcome to the Game Explorer API');
-});
-
+// API endpoint to search for games
 app.get('/api/search', async (req, res) => {
   try {
     const searchQuery = req.query.q || ''; // Use the query parameter 'q' or default to an empty string
@@ -87,6 +91,7 @@ app.get('/api/search', async (req, res) => {
     const limit = 5;
     let hasMore = true;
 
+    // Loop to paginate through the IGDB API results
     while (hasMore) {
       const queryData = `fields id,name,genres.name,summary; search "${searchQuery}"; limit ${limit}; offset ${offset};`;
       console.log(`Querying IGDB with data: ${queryData}`);
@@ -117,25 +122,30 @@ app.get('/api/search', async (req, res) => {
     const updatedGames = [];
 
     for (const game of allGames) {
-      const existingGame = await Game.findOne({ gameId: game.id });
+      let existingGame = await Game.findOne({ gameId: game.id });
+      let videoUrl = existingGame ? existingGame.videoUrl : await fetchYouTubeVideo(game.name);
 
+      // Save new game to the database if it doesn't exist
+      if (!existingGame) {
+        existingGame = new Game({
+          gameId: game.id,
+          videoUrl: videoUrl,
+          likes: 0, 
+          dislikes: 0 
+        });
+        await existingGame.save();
+      }
+
+      // Prepare the game data for the response
       const gameData = {
         id: game.id,
         name: game.name,
         genres: game.genres ? game.genres.map((genre) => genre.name) : [],
         summary: game.summary,
-        videoUrl: existingGame ? existingGame.videoUrl : await fetchYouTubeVideo(game.name),
-        likes: existingGame ? existingGame.likes : 0,
-        dislikes: existingGame ? existingGame.dislikes : 0,
+        videoUrl: videoUrl,
+        likes: existingGame.likes,
+        dislikes: existingGame.dislikes,
       };
-
-      if (!existingGame) {
-        const newGame = new Game({
-          gameId: game.id,
-          videoUrl: gameData.videoUrl,
-        });
-        await newGame.save();
-      }
 
       updatedGames.push(gameData);
     }
@@ -148,6 +158,15 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, 'game-explorer-client/build')));
+
+// Catch-all handler for any requests that don't match the above
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'game-explorer-client/build', 'index.html'));
+});
+
+// Start the server
 app.listen(port, () => {
   console.log('Server is running on port: ' + port);
 });
