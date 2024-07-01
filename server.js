@@ -19,6 +19,7 @@ const gameSchema = new mongoose.Schema({
   videoUrl: String,
   likes: { type: Number, default: 0 },
   dislikes: { type: Number, default: 0 },
+  coverUrl: String, // Add coverUrl field
 });
 
 // Create the Game model from the schema
@@ -75,6 +76,38 @@ const fetchYouTubeVideo = async (gameName) => {
   }
 };
 
+// Function to fetch a cover image URL for a given game ID
+const fetchGameCover = async (gameId, ACCESS_TOKEN) => {
+  const IGDB_API_URL = 'https://api.igdb.com/v4/covers';
+  try {
+    console.log(`Fetching cover for game ID: ${gameId}`);
+    const response = await axios({
+      url: IGDB_API_URL,
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Client-ID': CLIENT_ID,
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+      },
+      data: `fields url; where game = ${gameId};`,
+    });
+
+    console.log(`IGDB API response for cover:`, response.data);
+
+    if (response.data.length > 0) {
+      const coverUrl = response.data[0].url.replace('t_thumb', 't_cover_big');
+      console.log(`Fetched cover for game ID ${gameId}: ${coverUrl}`);
+      return coverUrl;
+    } else {
+      console.log(`No cover found for game ID: ${gameId}`);
+      return 'No cover found';
+    }
+  } catch (error) {
+    console.error(`Error fetching cover for game ID ${gameId}:`, error);
+    return 'Error';
+  }
+};
+
 // API endpoint to search for games
 app.get('/api/search', async (req, res) => {
   try {
@@ -124,12 +157,14 @@ app.get('/api/search', async (req, res) => {
     for (const game of allGames) {
       let existingGame = await Game.findOne({ gameId: game.id });
       let videoUrl = existingGame ? existingGame.videoUrl : await fetchYouTubeVideo(game.name);
+      let coverUrl = existingGame ? existingGame.coverUrl : await fetchGameCover(game.id, ACCESS_TOKEN);
 
       // Save new game to the database if it doesn't exist
       if (!existingGame) {
         existingGame = new Game({
           gameId: game.id,
           videoUrl: videoUrl,
+          coverUrl: coverUrl,
           likes: 0, 
           dislikes: 0 
         });
@@ -143,6 +178,7 @@ app.get('/api/search', async (req, res) => {
         genres: game.genres ? game.genres.map((genre) => genre.name) : [],
         summary: game.summary,
         videoUrl: videoUrl,
+        coverUrl: coverUrl,
         likes: existingGame.likes,
         dislikes: existingGame.dislikes,
       };
