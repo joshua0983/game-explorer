@@ -25,7 +25,6 @@ const gameSchema = new mongoose.Schema({
 // Create the Game model from the schema
 const Game = mongoose.model('Game', gameSchema);
 
-
 // Function to get an access token from Twitch
 const getToken = async () => {
   try {
@@ -119,13 +118,13 @@ app.get('/api/search', async (req, res) => {
       return res.status(500).send('Error fetching access token');
     }
 
-    let allGames = [];
+    const allGames = [];
+    const limit = 12;
     let offset = 0;
-    const limit = 5;
     let hasMore = true;
 
     // Loop to paginate through the IGDB API results
-    while (hasMore) {
+    while (hasMore && allGames.length < limit) {
       const queryData = `fields id,name,genres.name,summary; search "${searchQuery}"; limit ${limit}; offset ${offset};`;
       console.log(`Querying IGDB with data: ${queryData}`);
 
@@ -143,7 +142,8 @@ app.get('/api/search', async (req, res) => {
       console.log(`IGDB API Response for offset ${offset}:`, JSON.stringify(response.data, null, 2));
 
       const games = response.data;
-      allGames = allGames.concat(games);
+
+      allGames.push(...games);
 
       if (games.length < limit) {
         hasMore = false;
@@ -154,9 +154,9 @@ app.get('/api/search', async (req, res) => {
 
     const updatedGames = [];
 
-    for (const game of allGames) {
+    for (const game of allGames.slice(0, limit)) {
       let existingGame = await Game.findOne({ gameId: game.id });
-      let videoUrl = existingGame ? existingGame.videoUrl : await fetchYouTubeVideo(game.name);
+      let videoUrl = (existingGame && existingGame.videoUrl !== 'Error') ? existingGame.videoUrl : await fetchYouTubeVideo(game.name);
       let coverUrl = existingGame ? existingGame.coverUrl : await fetchGameCover(game.id, ACCESS_TOKEN);
 
       // Save new game to the database if it doesn't exist
@@ -184,9 +184,12 @@ app.get('/api/search', async (req, res) => {
       };
 
       updatedGames.push(gameData);
+
+      // Stop if we have reached the limit
+      if (updatedGames.length >= limit) break;
     }
 
-    console.log(`Total games found: ${allGames.length}`);
+    console.log(`Total games found: ${updatedGames.length}`);
     res.json(updatedGames);
   } catch (error) {
     console.error('Error searching games:', error.message);

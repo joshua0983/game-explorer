@@ -2,6 +2,13 @@
   text-align: center;
 }
 
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  background-color: black;
+  color: white;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;
@@ -35,4 +42,126 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 30vh;
+}
+
+.loader {
+        transform: rotateZ(45deg);
+        perspective: 1000px;
+        border-radius: 50%;
+        width: 68px;
+        height: 68px;
+        color: #fff;
+      }
+        .loader:before,
+        .loader:after {
+          content: '';
+          display: block;
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: inherit;
+          height: inherit;
+          border-radius: 50%;
+          transform: rotateX(70deg);
+          animation: 1s spin linear infinite;
+        }
+        .loader:after {
+          color: #FF3D00;
+          transform: rotateY(70deg);
+          animation-delay: .4s;
+        }
+
+      @keyframes rotate {
+        0% {
+          transform: translate(-50%, -50%) rotateZ(0deg);
+        }
+        100% {
+          transform: translate(-50%, -50%) rotateZ(360deg);
+        }
+      }
+
+      @keyframes rotateccw {
+        0% {
+          transform: translate(-50%, -50%) rotate(0deg);
+        }
+        100% {
+          transform: translate(-50%, -50%) rotate(-360deg);
+        }
+      }
+
+      @keyframes spin {
+        0%,
+        100% {
+          box-shadow: .2em 0px 0 0px currentcolor;
+        }
+        12% {
+          box-shadow: .2em .2em 0 0 currentcolor;
+        }
+        25% {
+          box-shadow: 0 .2em 0 0px currentcolor;
+        }
+        37% {
+          box-shadow: -.2em .2em 0 0 currentcolor;
+        }
+        50% {
+          box-shadow: -.2em 0 0 0 currentcolor;
+        }
+        62% {
+          box-shadow: -.2em -.2em 0 0 currentcolor;
+        }
+        75% {
+          box-shadow: 0px -.2em 0 0 currentcolor;
+        }
+        87% {
+          box-shadow: .2em -.2em 0 0 currentcolor;
+        }
+      }
+/* Custom Card Component */
+.custom-card{
+  width: 18rem;
+}
+.custom-card {
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #444;
+  transition: transform 0.3s;
+}
+
+.custom-card:hover {
+  transform: scale(1.05);
+}
+
+.custom-card-img {
+  height: 200px;
+  object-fit: cover;
+}
+
+.custom-card-body {
+  padding: 20px;
+}
+
+.custom-card-title {
+  font-size: 1.5rem;
+}
+
+.custom-card-text {
+  font-size: 1rem;
+  color: #ccc;
+}
+
+.custom-card-button {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.custom-card-button:hover {
+  background-color: #000000;
+  border-color: #000000;
 }
