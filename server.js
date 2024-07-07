@@ -31,6 +31,25 @@ const gameSchema = new mongoose.Schema({
   gameModes: [String],
 });
 
+// Define the TopGame schema for MongoDB
+const topGameSchema = new mongoose.Schema({
+  gameId: Number,
+  name: String,
+  aggregatedRating: Number,
+  platforms: [String],
+  screenshots: [String],
+  firstReleaseDate: Number,
+  storyline: String,
+  videos: [String],
+  coverUrl: String,
+  summary: String,
+  genres: [String],
+  gameModes: [String],
+});
+
+// Create the TopGame model from the schema
+const TopGame = mongoose.model('TopGame', topGameSchema);
+
 // Create the Game model from the schema
 const Game = mongoose.model('Game', gameSchema);
 
@@ -117,30 +136,126 @@ const fetchGameCover = async (gameId, ACCESS_TOKEN) => {
   }
 };
 
-// API endpoint to search for games
+// Function to truncate summary
+const truncateSummary = (summary) => {
+  if (!summary) return '';
+  const words = summary.split(' ');
+  if (words.length <= 40) return summary;
+  
+  let truncated = words.slice(0, 40).join(' ');
+  const lastPeriodIndex = truncated.lastIndexOf('.');
+  return lastPeriodIndex !== -1 ? truncated.slice(0, lastPeriodIndex + 1) : truncated;
+};
+
+const fetchAndStoreTopGames = async (accessToken) => {
+  try {
+    const queryData = `
+      fields id, name, aggregated_rating, platforms.name, screenshots.url, first_release_date, storyline, videos.video_id, cover.url, summary, genres.name, game_modes.name; 
+      where aggregated_rating > 90; 
+      limit 100; 
+      sort aggregated_rating desc;
+    `;
+    
+    const response = await axios({
+      url: 'https://api.igdb.com/v4/games',
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Client-ID': CLIENT_ID,
+        Authorization: `Bearer ${accessToken}`,
+      },
+      data: queryData,
+    });
+
+    const games = response.data;
+
+    for (const gameData of games) {
+      if (!gameData.cover) {
+        continue; // Skip this game if there is no cover
+      }
+      const newGame = new TopGame({
+        gameId: gameData.id,
+        name: gameData.name,
+        aggregatedRating: gameData.aggregated_rating,
+        platforms: gameData.platforms ? gameData.platforms.map((platform) => platform.name) : [],
+        screenshots: gameData.screenshots ? gameData.screenshots.map((screenshot) => screenshot.url) : [],
+        firstReleaseDate: gameData.first_release_date,
+        storyline: gameData.storyline,
+        videos: gameData.videos ? gameData.videos.map((video) => `https://www.youtube.com/watch?v=${video.video_id}`) : [],
+        coverUrl: gameData.cover.url.replace('t_thumb', 't_cover_big'),
+        summary: truncateSummary(gameData.summary),
+        genres: gameData.genres ? gameData.genres.map((genre) => genre.name) : [],
+        gameModes: gameData.game_modes ? gameData.game_modes.map((mode) => mode.name) : [],
+      });
+
+      await newGame.save();
+    }
+
+    console.log('Top games have been fetched and stored successfully.');
+  } catch (error) {
+    console.error('Error fetching and storing top games:', error);
+  }
+};
+
+const initTopGamesCollection = async () => {
+  const existingTopGamesCount = await TopGame.countDocuments();
+
+  if (existingTopGamesCount === 0) {
+    const accessToken = await getToken();
+    if (accessToken) {
+      await fetchAndStoreTopGames(accessToken);
+    }
+  } else {
+    console.log('Top games collection already initialized.');
+  }
+};
+
+// Initialize the top-games collection
+initTopGamesCollection();
+
+// API endpoint to search for games with pagination
 app.get('/api/search', async (req, res) => {
   try {
-    const searchQuery = req.query.q || ''; // Use the query parameter 'q' or default to an empty string
-    console.log(`Searching for games with query: ${searchQuery}`);
+    const searchQuery = req.query.q || '';
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = 12;
+    const skip = (page - 1) * limit;
+
+    console.log(`Searching for games with query: ${searchQuery} on page: ${page}`);
 
     const ACCESS_TOKEN = await getToken();
     if (!ACCESS_TOKEN) {
       return res.status(500).send('Error fetching access token');
     }
 
-    let existingGames = await Game.find({ name: new RegExp(searchQuery, 'i') }).limit(12);
+    if (searchQuery.trim() === '') {
+      // Fetch top games from the top-games collection
+      const topGames = await TopGame.find().sort({ aggregatedRating: -1 }).skip(skip).limit(limit);
+      const paginatedTopGames = topGames.map(game => ({
+        ...game._doc,
+        summary: truncateSummary(game.summary),
+        videoUrl: game.videos && game.videos.length > 0 ? game.videos[0] : ''
+      }));
+
+      return res.json(paginatedTopGames);
+    }
+
+    let existingGames = await Game.find({ name: new RegExp(searchQuery, 'i') }).skip(skip).limit(limit);
     existingGames = existingGames.sort((a, b) => (b.aggregatedRating || 0) - (a.aggregatedRating || 0));
 
-    if (existingGames.length >= 12) {
+    if (existingGames.length >= limit) {
+      existingGames = existingGames.map(game => ({
+        ...game._doc,
+        summary: truncateSummary(game.summary),
+        videoUrl: game.videos && game.videos.length > 0 ? game.videos[0] : ''
+      }));
       return res.json(existingGames);
     }
 
     const allGames = [];
-    const limit = 12;
-    let offset = 0;
+    let offset = skip;
     let hasMore = true;
 
-    // Loop to paginate through the IGDB API results
     while (hasMore && allGames.length + existingGames.length < limit) {
       const queryData = `
         fields id, name, aggregated_rating, platforms.name, screenshots.url, first_release_date, storyline, videos.video_id, cover.url, summary, genres.name, game_modes.name; 
@@ -173,7 +288,6 @@ app.get('/api/search', async (req, res) => {
       }
     }
 
-    // Sort fetched games by aggregated rating before processing them
     allGames.sort((a, b) => (b.aggregated_rating || 0) - (a.aggregated_rating || 0));
 
     const updatedGames = [];
@@ -181,16 +295,18 @@ app.get('/api/search', async (req, res) => {
     for (const game of allGames.slice(0, limit - existingGames.length)) {
       let existingGame = await Game.findOne({ gameId: game.id });
       let coverUrl = game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : await fetchGameCover(game.id, ACCESS_TOKEN);
-    
-      // Fetch YouTube video if no video is available from IGDB
+
+      if (!coverUrl || coverUrl === 'No cover found') {
+        continue; // Skip games without a cover
+      }
+
       let videoUrl = '';
       if (game.videos && game.videos.length > 0) {
-        videoUrl = `https://www.youtube.com/watch?v=${game.videos[0].video_id}`;
+        videoUrl = game.videos[0];
       } else {
         videoUrl = await fetchYouTubeVideo(game.name);
       }
-    
-      // Save new game to the database if it doesn't exist
+
       if (!existingGame) {
         existingGame = new Game({
           gameId: game.id,
@@ -202,47 +318,36 @@ app.get('/api/search', async (req, res) => {
           storyline: game.storyline,
           videos: [videoUrl],
           coverUrl: coverUrl,
-          summary: game.summary,
+          summary: truncateSummary(game.summary),
           genres: game.genres ? game.genres.map((genre) => genre.name) : [],
           gameModes: game.game_modes ? game.game_modes.map((mode) => mode.name) : [],
         });
         await existingGame.save();
       }
-    
-      // Prepare the game data for the response
-      // Prepare the game data for the response
-const gameData = {
-  id: game.id,
-  name: game.name,
-  aggregatedRating: game.aggregated_rating,
-  platforms: game.platforms ? game.platforms.map((platform) => platform.name) : [],
-  screenshots: game.screenshots ? game.screenshots.map((screenshot) => screenshot.url) : [],
-  firstReleaseDate: game.first_release_date,
-  storyline: game.storyline,
-  videos: [videoUrl],
-  coverUrl: coverUrl,
-  summary: (() => {
-    if (!game.summary) return '';
-    const words = game.summary.split(' ');
-    if (words.length <= 40) return game.summary;
-    
-    let summary = words.slice(0, 40).join(' ');
-    const lastPeriodIndex = summary.lastIndexOf('.');
-    return lastPeriodIndex !== -1 ? summary.slice(0, lastPeriodIndex + 1) : summary;
-  })(),
-  genres: game.genres ? game.genres.map((genre) => genre.name) : [],
-  gameModes: game.game_modes ? game.game_modes.map((mode) => mode.name) : [],
-};
-    
+
+      const gameData = {
+        id: game.id,
+        name: game.name,
+        aggregatedRating: game.aggregated_rating,
+        platforms: game.platforms ? game.platforms.map((platform) => platform.name) : [],
+        screenshots: game.screenshots ? game.screenshots.map((screenshot) => screenshot.url) : [],
+        firstReleaseDate: game.first_release_date,
+        storyline: game.storyline,
+        videos: [videoUrl],
+        coverUrl: coverUrl,
+        summary: truncateSummary(game.summary),
+        genres: game.genres ? game.genres.map((genre) => genre.name) : [],
+        gameModes: game.game_modes ? game.game_modes.map((mode) => mode.name) : [],
+        videoUrl: videoUrl,
+      };
+
       updatedGames.push(gameData);
-    
-      // Stop if we have reached the limit
+
       if (updatedGames.length + existingGames.length >= limit) break;
     }
-    
-    // Combine existing and newly fetched games
+
     const allResults = [...existingGames, ...updatedGames];
-    
+
     console.log(`Total games found: ${allResults.length}`);
     res.json(allResults);
   } catch (error) {
