@@ -1,0 +1,38 @@
+.homepage {
+    background-color: #101720;
+    color: white;
+    min-height: 30vh;
+  }
+  
+  .navbar-custom {
+    background-color: #343a40 !important;
+  }
+  
+  .navbar-brand-custom {
+    color: #ffffff !important;
+  }
+  
+  .nav-link-custom {
+    color: #ffffff !important;
+  }
+  
+  .search-form-custom {
+    display: flex;
+  }
+  
+  .search-input-custom {
+    margin-right: 0.5rem;
+  }
+  
+  .welcome-section {
+    margin-top: 5rem;
+  }
+  
+  .welcome-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+  }
+  
+  .welcome-text {
+    font-size: 1.25rem;
+  }

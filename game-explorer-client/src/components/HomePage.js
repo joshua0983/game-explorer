@@ -1,6 +1,6 @@
-// src/components/HomePage.js
 import React, { useState } from 'react';
 import { Navbar, Nav, Container, Form, FormControl, Button } from 'react-bootstrap';
+import './HomePage.css';
 
 const HomePage = ({ onSearch }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,21 +17,21 @@ const HomePage = ({ onSearch }) => {
   };
 
   return (
-    <div style={{ backgroundColor: 'black', color: 'white', minHeight: '30vh' }}>
-      <Navbar bg="dark" variant="dark" expand="lg">
+    <div className="homepage">
+      <Navbar className="navbar-custom" expand="lg">
         <Container>
-          <Navbar.Brand href="#home">Game Explorer</Navbar.Brand>
+          <Navbar.Brand href="#home" className="navbar-brand-custom">Game Explorer</Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
-              <Nav.Link href="#home">Home</Nav.Link>
-              <Nav.Link href="#explore">Explore</Nav.Link>
+              <Nav.Link href="#home" className="nav-link-custom">Home</Nav.Link>
+              <Nav.Link href="#explore" className="nav-link-custom">Explore</Nav.Link>
             </Nav>
-            <Form className="d-flex" onSubmit={handleSearchSubmit}>
+            <Form className="search-form-custom" onSubmit={handleSearchSubmit}>
               <FormControl
                 type="search"
                 placeholder="Search games"
-                className="me-2"
+                className="search-input-custom"
                 aria-label="Search"
                 value={searchQuery}
                 onChange={handleSearchChange}
@@ -41,10 +41,10 @@ const HomePage = ({ onSearch }) => {
           </Navbar.Collapse>
         </Container>
       </Navbar>
-      <Container className="mt-5">
+      <Container className="welcome-section">
         <section id="home">
-          <h1>Welcome to Game Explorer</h1>
-          <p>Discover and explore games with detailed information and videos.</p>
+          <h1 className="welcome-title">Welcome to Game Explorer</h1>
+          <p className="welcome-text">Discover and explore games with detailed information and videos.</p>
         </section>
       </Container>
     </div>

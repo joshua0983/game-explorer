@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './GameGallery.css';
 
 const GameGallery = ({ games }) => (
-  <div style={{ backgroundColor: 'black', color: 'white', minHeight: '30vh' }}>
+  <div style={{ backgroundColor: '#101720', color: 'white', minHeight: '30vh' }}>
     <div className="container">
       <div className="row">
         {games.map(game => (
