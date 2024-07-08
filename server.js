@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -11,8 +12,11 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://joshua0983:jjworkicho@game-explorer.gjcmvrj.mongodb.net/?retryWrites=true&w=majority&appName=game-explorer');
+mongoose.connect(process.env.MONGO_URL);
 
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 // Define the Game schema for MongoDB
 const gameSchema = new mongoose.Schema({
