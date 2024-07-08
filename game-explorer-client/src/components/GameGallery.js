@@ -1,25 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import GameCard from './GameCard';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './GameGallery.css';
 
-const GameGallery = ({ games, onPageChange }) => {
-  const [currentPage, setCurrentPage] = useState(1);
-
+const GameGallery = ({ games, currentPage, onPageChange }) => {
   const handleNext = () => {
     const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
     onPageChange(nextPage);
   };
 
   const handlePrevious = () => {
     const previousPage = currentPage - 1;
-    setCurrentPage(previousPage);
     onPageChange(previousPage);
   };
 
   return (
-    <div style={{ backgroundColor: '#101720', color: 'white', minHeight: '30vh' }}>
+    <div style={{ backgroundColor: 'black', color: 'white', minHeight: '30vh' }}>
       <div className="container">
         <div className="row">
           {games.map((game) => (

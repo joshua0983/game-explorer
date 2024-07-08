@@ -14,7 +14,6 @@ app.use(express.json());
 mongoose.connect('mongodb+srv://joshua0983:jjworkicho@game-explorer.gjcmvrj.mongodb.net/?retryWrites=true&w=majority&appName=game-explorer');
 
 
-
 // Define the Game schema for MongoDB
 const gameSchema = new mongoose.Schema({
   gameId: Number,
@@ -213,6 +212,11 @@ const initTopGamesCollection = async () => {
 // Initialize the top-games collection
 initTopGamesCollection();
 
+// Function to extract video IDs from the IGDB response
+const extractVideoIds = (videos) => {
+  return videos ? videos.map(video => `https://www.youtube.com/watch?v=${video.video_id}`) : [];
+};
+
 // API endpoint to search for games with pagination
 app.get('/api/search', async (req, res) => {
   try {
@@ -300,11 +304,13 @@ app.get('/api/search', async (req, res) => {
         continue; // Skip games without a cover
       }
 
+      let videoUrls = extractVideoIds(game.videos);
       let videoUrl = '';
-      if (game.videos && game.videos.length > 0) {
-        videoUrl = game.videos[0];
+      if (videoUrls.length > 0) {
+        videoUrl = videoUrls[0];
       } else {
         videoUrl = await fetchYouTubeVideo(game.name);
+        videoUrls = [videoUrl];
       }
 
       if (!existingGame) {
@@ -316,7 +322,7 @@ app.get('/api/search', async (req, res) => {
           screenshots: game.screenshots ? game.screenshots.map((screenshot) => screenshot.url) : [],
           firstReleaseDate: game.first_release_date,
           storyline: game.storyline,
-          videos: [videoUrl],
+          videos: videoUrls,
           coverUrl: coverUrl,
           summary: truncateSummary(game.summary),
           genres: game.genres ? game.genres.map((genre) => genre.name) : [],
@@ -333,12 +339,12 @@ app.get('/api/search', async (req, res) => {
         screenshots: game.screenshots ? game.screenshots.map((screenshot) => screenshot.url) : [],
         firstReleaseDate: game.first_release_date,
         storyline: game.storyline,
-        videos: [videoUrl],
+        videos: videoUrls,
         coverUrl: coverUrl,
         summary: truncateSummary(game.summary),
         genres: game.genres ? game.genres.map((genre) => genre.name) : [],
         gameModes: game.game_modes ? game.game_modes.map((mode) => mode.name) : [],
-        videoUrl: videoUrl,
+        videoUrl: videoUrls.length > 0 ? videoUrls[0] : videoUrl,
       };
 
       updatedGames.push(gameData);

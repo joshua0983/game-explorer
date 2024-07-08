@@ -1,83 +1,84 @@
-.custom-card {
+.game-container {
+    text-align: center;
+  }
+  
+  .game-name {
+    margin-top: 10px;
+    transition: margin-top 0.5s;
+  }
+  
+  .custom-card {
     border-radius: 16px;
     overflow: hidden;
     position: relative;
     transition: 0.5s;
     cursor: pointer;
-    background-color: #0B1215;
     color: #fff;
   }
   
-.custom-card:hover {
-  transform: scale(1.05);
-}
-
-.custom-card-img {
-  width: 100%;
-  height: 400px;
-  object-fit: cover;
-  pointer-events: none;
-  transition: 0.5s;
-}
-
-.card-body {
-  text-align: center;
-  padding: 10px 0;
-  background-color: #0B1215;
-}
-
-.card-title {
-  font-size: 1.2em;
-  font-weight: bold;
-  color: #fff;
-}
-
-.layer {
-  background: linear-gradient(to top, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 75%;
-  opacity: 0;
-  transition: 0.3s;
-}
-
-.info {
-  position: absolute;
-  bottom: -50%;
-  padding: 15px;
-  opacity: 0;
-  transition: 0.5s bottom, 1.75s opacity;
-}
-
-.info p {
-  font-size: 14px;
-  margin-top: 3px;
-  color: #ccc;
-}
-
-.info button {
-  background: #490CCC;
-  border: none;
-  padding: 8px 12px;
-  font-weight: bold;
-  border-radius: 8px;
-  margin-top: 8px;
-  color: white;
-  margin-left: 8px;
-}
-
-.custom-card:hover,
-.custom-card:hover .custom-card-img,
-.custom-card:hover .layer {
-  transform: scale(1.1);
-}
-
-.custom-card:hover .layer {
-  opacity: 1;
-}
-
-.custom-card:hover .info {
-  bottom: 0;
-  opacity: 1;
-}
+  .custom-card:hover {
+    transform: scale(1.05);
+  }
+  
+  .custom-card-img {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+    pointer-events: none;
+    transition: 0.5s;
+  }
+  
+  .layer {
+    background: linear-gradient(to top, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 75%;
+    opacity: 0;
+    transition: 0.3s;
+  }
+  
+  .info {
+    position: absolute;
+    bottom: -50%;
+    padding: 15px;
+    opacity: 0;
+    transition: 0.5s bottom, 1.75s opacity;
+  }
+  
+  .info p {
+    font-size: 14px;
+    margin-top: 3px;
+    color: #ccc;
+    font-family: sans-serif;
+  }
+  
+  .info button {
+    background: #490CCC;
+    border: none;
+    padding: 8px 12px;
+    font-weight: bold;
+    border-radius: 8px;
+    margin-top: 8px;
+    color: white;
+    margin-left: 8px;
+  }
+  
+  .custom-card:hover,
+  .custom-card:hover .custom-card-img,
+  .custom-card:hover .layer {
+    transform: scale(1.1);
+  }
+  
+  .custom-card:hover .layer {
+    opacity: 1;
+  }
+  
+  .custom-card:hover .info {
+    bottom: 0;
+    opacity: 1;
+  }
+  
+  .game-name {
+    font-size: 20px;
+  }

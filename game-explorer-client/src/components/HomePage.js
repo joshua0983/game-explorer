@@ -27,18 +27,21 @@ const HomePage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchGames(searchQuery, page);
-  }, [searchQuery, page]);
-
   const handleSearch = (query) => {
     setSearchQuery(query);
     setPage(1); // Reset to first page on new search
+    fetchGames(query, 1); // Fetch games with the new search query and page 1
   };
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
+    fetchGames(searchQuery, newPage); // Fetch games with the current search query and new page
   };
+
+  useEffect(() => {
+    // Fetch top 100 games on initial load
+    fetchGames('', 1);
+  }, []);
 
   return (
     <div className="homepage">
@@ -78,7 +81,7 @@ const HomePage = () => {
           <div className="loader" />
         </div>
       ) : (
-        <GameGallery games={games} onPageChange={handlePageChange} />
+        <GameGallery games={games} currentPage={page} onPageChange={handlePageChange} />
       )}
     </div>
   );
