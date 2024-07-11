@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Form, FormControl, Button } from 'react-bootstrap';
 import GameGallery from './GameGallery';
 import axios from 'axios';
-import './HomePage.css';
+import './MainStyles.css';
+import '../App.css';
 
 const HomePage = () => {
   const [games, setGames] = useState([]);

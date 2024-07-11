@@ -18,6 +18,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
+
 // Define the Game schema for MongoDB
 const gameSchema = new mongoose.Schema({
   gameId: Number,
@@ -176,12 +177,16 @@ const fetchAndStoreTopGames = async (accessToken) => {
       if (!gameData.cover) {
         continue; // Skip this game if there is no cover
       }
+      const updatedScreenshots = gameData.screenshots
+        ? gameData.screenshots.map((screenshot) => screenshot.url.replace('t_thumb', 't_screenshot_big'))
+        : [];
+
       const newGame = new TopGame({
         gameId: gameData.id,
         name: gameData.name,
         aggregatedRating: gameData.aggregated_rating,
         platforms: gameData.platforms ? gameData.platforms.map((platform) => platform.name) : [],
-        screenshots: gameData.screenshots ? gameData.screenshots.map((screenshot) => screenshot.url) : [],
+        screenshots: updatedScreenshots,
         firstReleaseDate: gameData.first_release_date,
         storyline: gameData.storyline,
         videos: gameData.videos ? gameData.videos.map((video) => `https://www.youtube.com/watch?v=${video.video_id}`) : [],
@@ -221,7 +226,8 @@ const extractVideoIds = (videos) => {
   return videos ? videos.map(video => `https://www.youtube.com/watch?v=${video.video_id}`) : [];
 };
 
-// API endpoint to search for games with pagination
+
+// Integration in the API endpoint to search for games with pagination
 app.get('/api/search', async (req, res) => {
   try {
     const searchQuery = req.query.q || '';
@@ -242,7 +248,8 @@ app.get('/api/search', async (req, res) => {
       const paginatedTopGames = topGames.map(game => ({
         ...game._doc,
         summary: truncateSummary(game.summary),
-        videoUrl: game.videos && game.videos.length > 0 ? game.videos[0] : ''
+        videoUrl: game.videos && game.videos.length > 0 ? game.videos[0] : '',
+        screenshots: game.screenshots ? game.screenshots.map(screenshot => screenshot.replace('t_thumb', 't_screenshot_big')) : []
       }));
 
       return res.json(paginatedTopGames);
@@ -255,7 +262,8 @@ app.get('/api/search', async (req, res) => {
       existingGames = existingGames.map(game => ({
         ...game._doc,
         summary: truncateSummary(game.summary),
-        videoUrl: game.videos && game.videos.length > 0 ? game.videos[0] : ''
+        videoUrl: game.videos && game.videos.length > 0 ? game.videos[0] : '',
+        screenshots: game.screenshots ? game.screenshots.map(screenshot => screenshot.replace('t_thumb', 't_screenshot_big')) : []
       }));
       return res.json(existingGames);
     }
@@ -310,11 +318,25 @@ app.get('/api/search', async (req, res) => {
 
       let videoUrls = extractVideoIds(game.videos);
       let videoUrl = '';
-      if (videoUrls.length > 0) {
+      if (videoUrls.length > 0 && videoUrls[0] !== 'No videos found' && videoUrls[0] !== 'Error') {
         videoUrl = videoUrls[0];
       } else {
         videoUrl = await fetchYouTubeVideo(game.name);
         videoUrls = [videoUrl];
+
+        // Update the game in the database with the new video URL
+        if (existingGame) {
+          existingGame.videos = videoUrls;
+          await existingGame.save();
+        } else {
+          game.videos = videoUrls;
+        }
+      }
+      let screenshotUrls = game.screenshots ? game.screenshots.map((screenshot) => screenshot.url.replace('t_thumb', 't_screenshot_big')) : [];
+
+      if (existingGame) {
+        existingGame.screenshots = screenshotUrls;
+        await existingGame.save();
       }
 
       if (!existingGame) {
@@ -323,7 +345,7 @@ app.get('/api/search', async (req, res) => {
           name: game.name,
           aggregatedRating: game.aggregated_rating,
           platforms: game.platforms ? game.platforms.map((platform) => platform.name) : [],
-          screenshots: game.screenshots ? game.screenshots.map((screenshot) => screenshot.url) : [],
+          screenshots: screenshotUrls,
           firstReleaseDate: game.first_release_date,
           storyline: game.storyline,
           videos: videoUrls,
@@ -340,7 +362,7 @@ app.get('/api/search', async (req, res) => {
         name: game.name,
         aggregatedRating: game.aggregated_rating,
         platforms: game.platforms ? game.platforms.map((platform) => platform.name) : [],
-        screenshots: game.screenshots ? game.screenshots.map((screenshot) => screenshot.url) : [],
+        screenshots: screenshotUrls,
         firstReleaseDate: game.first_release_date,
         storyline: game.storyline,
         videos: videoUrls,
@@ -365,7 +387,6 @@ app.get('/api/search', async (req, res) => {
     res.status(500).send('Error searching games');
   }
 });
-
 // Serve static files from the React app build directory
 app.use(express.static(path.join(__dirname, 'game-explorer-client/build')));
 

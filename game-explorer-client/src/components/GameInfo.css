@@ -1,0 +1,74 @@
+/* GameInfo.css */
+.game-custom-card {
+    border-radius: 16px; /* This is for the card */
+    overflow: hidden;    /* Ensures the border radius is applied correctly */
+    width: 100%; /* Adjust the width as needed */
+    max-width: 800px; /* Adjust the max-width as needed */
+    /*margin: 0 auto; Center the card */
+}
+
+.game-custom-card-img {
+    width: 40%;
+    height: 425px; /* Adjust the height as needed */
+    object-fit: cover;
+    pointer-events: none;
+    transition: 0.5s;
+    border-radius: 16px; /* This is for the image */
+    /* display: block; Center the image */
+    /* margin: 0 auto; Center the image */
+}
+
+.platform-icons {
+  display: flex;
+  margin-top: 20px;
+  justify-content: flex-start; /* Align to the start */
+}
+
+.platform-icon {
+  font-size: 24px;
+  margin: 0 10px;
+  color: #fff;
+}
+
+.game-info {
+  gap: 20px;
+  width: 8%;
+}
+
+.storyline h2 {
+  padding-bottom: 10px;
+  padding-top: 30px;
+  font-family: EvilEmpire, sans-serif;
+}
+
+.storyline p {
+  font-size: 1.25rem;
+}
+
+.screenshots-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.screenshot-card {
+  flex: 1;
+  margin: 2px;
+  background-color: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 300px;
+  transition: flex 0.3s ease, background-color 0.3s ease;
+}
+
+.screenshot-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.screenshot-card:hover {
+  flex: 2;
+  height: var(--screenshot-height, 300px);
+}
