@@ -10,6 +10,14 @@ const GameCard = ({ game }) => {
     navigate('/game-info', { state: { game } });
   };
 
+  const getFirstSentence = (text) => {
+    const firstPeriodIndex = text.indexOf('.');
+    return firstPeriodIndex !== -1 ? text.slice(0, firstPeriodIndex + 1) : text;
+  };
+
+  const combinedText = `${game.name} ${getFirstSentence(game.summary)}`;
+  const displaySummary = combinedText.length <= 240;
+
   return (
     <div className="game-container">
       <div className="card custom-card">
@@ -17,12 +25,12 @@ const GameCard = ({ game }) => {
         <div className="layer"></div>
         <div className="info">
           <h1>{game.name}</h1>
-          <p>{game.summary}</p>
+          {displaySummary && <p>{getFirstSentence(game.summary)}</p>}
           <button onClick={handleExplore}>Explore</button>
           <button onClick={() => window.open(game.videoUrl, '_blank')}>Watch Video</button>
         </div>
       </div>
-      <div className="game-name">{game.name}</div> 
+      <div className="game-name">{game.name}</div>
     </div>
   );
 };

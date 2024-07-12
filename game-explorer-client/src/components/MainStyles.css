@@ -18,14 +18,17 @@ body {
 .navbar-custom {
   background-color: #2D3B41 !important;
   font-family: 'EvilEmpire', sans-serif;
+  font-size: 1.1rem; /* Increase the font size here */
 }
 
 .navbar-brand-custom {
   color: #ffffff !important;
+  font-size: 1.5rem; /* Increase the font size here */
 }
 
 .nav-link-custom {
   color: #ffffff !important;
+  font-size: 1.1rem; /* Increase the font size here */
 }
 
 /* Search Form Styles */

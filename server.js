@@ -387,6 +387,70 @@ app.get('/api/search', async (req, res) => {
     res.status(500).send('Error searching games');
   }
 });
+
+// Add this endpoint to fetch a random game
+// Add this endpoint to fetch a random game
+app.get('/api/random-game', async (req, res) => {
+  try {
+    const ACCESS_TOKEN = await getToken();
+    if (!ACCESS_TOKEN) {
+      return res.status(500).send('Error fetching access token');
+    }
+
+    // Generate a random offset, adjust the 1000 based on the approximate number of games in the database
+    const randomOffset = Math.floor(Math.random() * 1000);
+
+    const queryData = `
+      fields id, name, aggregated_rating, platforms.name, screenshots.url, first_release_date, storyline, videos.video_id, cover.url, summary, genres.name, game_modes.name;
+      where aggregated_rating != null;
+      sort aggregated_rating desc;
+      limit 1;
+      offset ${randomOffset};
+    `;
+
+    const response = await axios({
+      url: 'https://api.igdb.com/v4/games',
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Client-ID': CLIENT_ID,
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+      },
+      data: queryData,
+    });
+
+    const games = response.data;
+
+    if (games.length === 0) {
+      return res.status(404).send('No games found');
+    }
+
+    const game = games[0];
+    const coverUrl = game.cover ? game.cover.url.replace('t_thumb', 't_cover_big') : await fetchGameCover(game.id, ACCESS_TOKEN);
+    const videoUrls = extractVideoIds(game.videos);
+    const screenshotUrls = game.screenshots ? game.screenshots.map(screenshot => screenshot.url.replace('t_thumb', 't_screenshot_big')) : [];
+
+    const randomGame = {
+      gameId: game.id,
+      name: game.name,
+      aggregatedRating: game.aggregated_rating,
+      platforms: game.platforms ? game.platforms.map(platform => platform.name) : [],
+      screenshots: screenshotUrls,
+      firstReleaseDate: game.first_release_date,
+      storyline: game.storyline,
+      videos: videoUrls,
+      coverUrl: coverUrl,
+      summary: truncateSummary(game.summary),
+      genres: game.genres ? game.genres.map(genre => genre.name) : [],
+      gameModes: game.game_modes ? game.game_modes.map(mode => mode.name) : [],
+    };
+
+    res.json(randomGame);
+  } catch (error) {
+    console.error('Error fetching random game:', error);
+    res.status(500).send('Error fetching random game');
+  }
+});
 // Serve static files from the React app build directory
 app.use(express.static(path.join(__dirname, 'game-explorer-client/build')));
 

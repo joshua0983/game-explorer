@@ -91,3 +91,8 @@
     display: block;
     margin: 20px auto;
 }
+@media (max-width: 768px) {
+    .game-name {
+        visibility: hidden;
+    }
+}
