@@ -175,7 +175,7 @@ const fetchAndStoreTopGames = async (accessToken) => {
 
     for (const gameData of games) {
       if (!gameData.cover) {
-        continue; // Skip this game if there is no cover
+        continue; 
       }
       const updatedScreenshots = gameData.screenshots
         ? gameData.screenshots.map((screenshot) => screenshot.url.replace('t_thumb', 't_screenshot_big'))
