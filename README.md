@@ -1,4 +1,4 @@
-Game Explorer
+#Game Explorer
 
 Game Explorer is a web application designed to enhance the user experience in exploring games from the IGDB database. With a visually appealing design and robust backend, users can effortlessly discover and learn about various games.
 
